@@ -28,29 +28,10 @@ public class OrdersController : ControllerBase
     public async Task<IActionResult> CreateOrder(
         [FromBody] OrderRequest request)
     {
-        if (request == null)
+        var validationErrors = request.Validate();
+        if (validationErrors.Any())
         {
-            return BadRequest("Request cannot be null.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.UserId))
-        {
-            return BadRequest("UserId is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Symbol))
-        {
-            return BadRequest("Symbol is required.");
-        }
-
-        if (request.Price <= 0)
-        {
-            return BadRequest("Price must be greater than zero.");
-        }
-
-        if (request.Volume <= 0)
-        {
-            return BadRequest("Volume must be greater than zero.");
+            return BadRequest(new { Errors = validationErrors });
         }
 
         try
