@@ -2,11 +2,13 @@
 
 using Microsoft.AspNetCore.SignalR;
 
+// Аналог: @Component + фоновый поток / @Scheduled в Spring
 public class OrderExpirationBackgroundService
     : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
 
+    // // доступ к WebSocket (SignalR) вне Hub-а
     private readonly IHubContext<OrdersHub, IOrderClient>
         _hubContext;
 
@@ -54,6 +56,7 @@ public class OrderExpirationBackgroundService
 
                 foreach (var order in orders)
                 {
+                    // async метод (аналог CompletableFuture + join)
                     var cancelledOrder =
                         await orderService
                             .CancelOrderAsync(order.Id);

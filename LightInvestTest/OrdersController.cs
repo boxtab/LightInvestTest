@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.SignalR;
 [Route("api/orders")]
 public class OrdersController : ControllerBase
 {
-    private readonly IOrderService _orderService;
+    private readonly IOrderService _orderService; // Модификатор джава final
 
     private readonly IHubContext<OrdersHub, IOrderClient>
         _hubContext;
