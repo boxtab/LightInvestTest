@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "6w3XiivhUhE=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\strix\\RiderProjects\\LightInvestTest\\LightInvestTest\\LightInvestTest.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\strix\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.11\\microsoft.aspnetcore.openapi.10.0.11.nupkg.sha512",
+    "C:\\Users\\strix\\.nuget\\packages\\microsoft.openapi\\2.7.5\\microsoft.openapi.2.7.5.nupkg.sha512",
+    "C:\\Users\\strix\\.nuget\\packages\\system.text.json\\8.0.5\\system.text.json.8.0.5.nupkg.sha512"
+  ],
+  "logs": []
+}

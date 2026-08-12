@@ -1,0 +1,6 @@
+@LightInvestTest_HostAddress = http://localhost:5111
+
+GET {{LightInvestTest_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
