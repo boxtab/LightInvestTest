@@ -25,8 +25,7 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder(
-        [FromBody] OrderRequest request)
+    public async Task<IActionResult> CreateOrder([FromBody] OrderRequest request)
     {
         var validationErrors = request.Validate();
         if (validationErrors.Any())
@@ -36,45 +35,47 @@ public class OrdersController : ControllerBase
 
         try
         {
-            // В реальном приложении здесь должна быть
-            // настоящая проверка авторизации.
-            var hasAccess =
-                await CheckUserAccessAsync(request.UserId);
-
-            if (!hasAccess)
+            if (!await AuthorizeUserAsync(request.UserId))
             {
                 return Unauthorized();
             }
 
-            var order =
-                await _orderService.CreateOrderAsync(request);
-
-            // Уведомляем ВСЕ SignalR-соединения
-            // данного пользователя.
-            await _hubContext
-                .Clients
-                .Group(order.UserId)
-                .ReceiveOrderUpdate(order);
+            var order = await ProcessOrderCreationAsync(request);
 
             return Ok(order);
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Error creating order for user {UserId}",
-                request.UserId);
-
-            return StatusCode(
-                500,
-                "Internal server error.");
+            LogOrderCreationError(ex, request?.UserId);
+            return StatusCode(500, "Internal server error.");
         }
     }
 
-    private Task<bool> CheckUserAccessAsync(string userId)
+    // 1. Отдельный метод на проверку доступа
+    private async Task<bool> AuthorizeUserAsync(string userId)
     {
-        // Временная заглушка для тестового задания.
-        return Task.FromResult(
-            !string.IsNullOrWhiteSpace(userId));
+        // В реальном приложении здесь будет настоящая проверка
+        return await Task.FromResult(!string.IsNullOrWhiteSpace(userId));
+    }
+
+    // 2. Отдельный метод на создание ордера и нотификацию по WebSocket
+    private async Task<Order> ProcessOrderCreationAsync(OrderRequest request)
+    {
+        var order = await _orderService.CreateOrderAsync(request);
+
+        await _hubContext.Clients
+            .Group(order.UserId)
+            .ReceiveOrderUpdate(order);
+
+        return order;
+    }
+
+    // 3. Отдельный метод на логирование ошибок
+    private void LogOrderCreationError(Exception ex, string? userId)
+    {
+        _logger.LogError(
+            ex,
+            "Error creating order for user {UserId}",
+            userId);
     }
 }
