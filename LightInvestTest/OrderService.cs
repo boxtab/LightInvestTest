@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 
 public class OrderService : IOrderService
 {
+    // Потокобезопасная хеш-таблица. прямой аналог Java-класса ConcurrentHashMap<UUID, Order>
     private readonly ConcurrentDictionary<Guid, Order> _orders = new();
 
     public Task<Order> CreateOrderAsync(OrderRequest request)
