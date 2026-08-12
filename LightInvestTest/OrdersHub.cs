@@ -1,10 +1,6 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿namespace LightInvestTest;
 
-public interface IOrderClient
-{
-    Task ReceiveOrderUpdate(Order order);
-    Task ReceiveInitialOrders(List<Order> orders);
-}
+using Microsoft.AspNetCore.SignalR;
 
 public class OrdersHub : Hub<IOrderClient>
 {
@@ -17,33 +13,32 @@ public class OrdersHub : Hub<IOrderClient>
 
     public override async Task OnConnectedAsync()
     {
-        // Извлекаем UserId из параметров подключения (например: /hub/orders?userId=user1)
         var httpContext = Context.GetHttpContext();
-        var userId = httpContext?.Request.Query["userId"].ToString();
 
-        if (!string.IsNullOrEmpty(userId))
+        var userId = httpContext?
+            .Request.Query["userId"]
+            .ToString();
+
+        if (string.IsNullOrWhiteSpace(userId))
         {
-            // Добавляем соединение клиента в группу его пользователя
-            await Groups.AddToGroupAsync(Context.ConnectionId, userId);
-
-            // Отправляем текущие активные ордера при подключении
-            var activeOrders = _orderService.GetActiveOrdersForUser(userId).ToList();
-            await Clients.Caller.ReceiveInitialOrders(activeOrders);
+            Context.Abort();
+            return;
         }
+
+        // Все соединения одного пользователя
+        // попадают в одну SignalR-группу.
+        await Groups.AddToGroupAsync(
+            Context.ConnectionId,
+            userId);
+
+        // Отправляем клиенту его текущие активные ордера.
+        var activeOrders =
+            _orderService
+                .GetActiveOrdersForUser(userId)
+                .ToList();
+
+        await Clients.Caller.ReceiveInitialOrders(activeOrders);
 
         await base.OnConnectedAsync();
-    }
-
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        var httpContext = Context.GetHttpContext();
-        var userId = httpContext?.Request.Query["userId"].ToString();
-
-        if (!string.IsNullOrEmpty(userId))
-        {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId);
-        }
-
-        await base.OnDisconnectedAsync(exception);
     }
 }

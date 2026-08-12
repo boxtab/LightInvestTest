@@ -1,18 +1,23 @@
+using LightInvestTest;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Добавляем контроллеры (аналог @RestController в Spring)
+// Controllers
 builder.Services.AddControllers();
 
-// Добавляем кэш в памяти (IMemoryCache)
-builder.Services.AddMemoryCache();
-
-// Регистрируем наш сервис как Singleton (чтобы кэш ордеров жил в памяти приложения)
-builder.Services.AddSingleton<IOrderService, OrderService>();
-
-// Добавляем SignalR для работы с WebSockets
+// SignalR
 builder.Services.AddSignalR();
 
-// Открываем OpenAPI/Swagger для удобной проверки
+// Order service.
+// Singleton нужен, потому что ордера хранятся
+// в памяти приложения.
+builder.Services.AddSingleton<IOrderService, OrderService>();
+
+// Background service,
+// который автоматически отменяет старые ордера.
+builder.Services.AddHostedService<OrderExpirationBackgroundService>();
+
+// OpenAPI
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -24,10 +29,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Подключаем маппинг контроллеров
 app.MapControllers();
 
-// Подключаем маршрут для SignalR Hub
 app.MapHub<OrdersHub>("/hub/orders");
 
 app.Run();

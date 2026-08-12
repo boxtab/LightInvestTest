@@ -1,36 +1,10 @@
-﻿using System.Collections.Concurrent;
-using Microsoft.Extensions.Caching.Memory;
+﻿namespace LightInvestTest;
 
-public class Order
-{
-    public Guid Id { get; set; }
-    public string Symbol { get; set; }
-    public decimal Price { get; set; }
-    public int Volume { get; set; }
-    public string UserId { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public bool IsActive { get; set; }
-}
-
-public record OrderRequest(string Symbol, decimal Price, int Volume, string UserId);
-
-public interface IOrderService
-{
-    Task<Order> CreateOrderAsync(OrderRequest request);
-    Task<bool> CancelOrderAsync(Guid orderId);
-    IEnumerable<Order> GetActiveOrdersForUser(string userId);
-}
+using System.Collections.Concurrent;
 
 public class OrderService : IOrderService
 {
-    // Потокобезопасный аналог ConcurrentHashMap для хранения ордеров в памяти
     private readonly ConcurrentDictionary<Guid, Order> _orders = new();
-    private readonly IMemoryCache _cache;
-
-    public OrderService(IMemoryCache cache)
-    {
-        _cache = cache;
-    }
 
     public Task<Order> CreateOrderAsync(OrderRequest request)
     {
@@ -41,28 +15,50 @@ public class OrderService : IOrderService
             Price = request.Price,
             Volume = request.Volume,
             UserId = request.UserId,
-            CreatedAt = DateTime.UtcNow, // Используем UTC, как требует правильная архитектура
+            CreatedAt = DateTime.UtcNow,
             IsActive = true
         };
 
         _orders[order.Id] = order;
+
         return Task.FromResult(order);
     }
 
-    public Task<bool> CancelOrderAsync(Guid orderId)
+    public Task<Order?> CancelOrderAsync(Guid orderId)
     {
-        if (_orders.TryGetValue(orderId, out var order) && order.IsActive)
+        if (!_orders.TryGetValue(orderId, out var order))
         {
-            order.IsActive = false;
-            return Task.FromResult(true);
+            return Task.FromResult<Order?>(null);
         }
-        return Task.FromResult(false);
+
+        if (!order.IsActive)
+        {
+            return Task.FromResult<Order?>(null);
+        }
+
+        order.IsActive = false;
+
+        return Task.FromResult<Order?>(order);
     }
 
     public IEnumerable<Order> GetActiveOrdersForUser(string userId)
     {
         return _orders.Values
-            .Where(o => o.UserId == userId && o.IsActive)
+            .Where(order =>
+                order.UserId == userId &&
+                order.IsActive)
+            .ToList();
+    }
+
+    public IEnumerable<Order> GetOrdersForCancellation(
+        TimeSpan orderLifetime)
+    {
+        var now = DateTime.UtcNow;
+
+        return _orders.Values
+            .Where(order =>
+                order.IsActive &&
+                now - order.CreatedAt >= orderLifetime)
             .ToList();
     }
 }
